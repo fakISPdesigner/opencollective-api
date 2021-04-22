@@ -175,6 +175,11 @@ function defineModel() {
         defaultValue: false,
       },
 
+      isDebt: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+      },
+
       createdAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
