@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { pick } from 'lodash';
 import sinon from 'sinon';
 
 import { TransactionKind } from '../../../server/constants/transaction-kind';
@@ -81,6 +82,23 @@ describe('server/models/Transaction', () => {
       CollectiveId: collective.id,
     }).then(() => {
       return Transaction.findAll().then(transactions => {
+        expect(
+          transactions.map(t =>
+            pick(t.dataValues, [
+              'kind',
+              'type',
+              'netAmountInCollectiveCurrency',
+              'currency',
+              'HostCollectiveId',
+              'platformFeeInHostCurrency',
+              'paymentProcessorFeeInHostCurrency',
+              'taxAmount',
+              'amount',
+              'description',
+            ]),
+          ),
+        ).to.matchTableSnapshot();
+
         expect(transactions.length).to.equal(2);
         expect(transactions[0].kind).to.equal(TransactionKind.CONTRIBUTION);
         expect(transactions[0].type).to.equal('DEBIT');
