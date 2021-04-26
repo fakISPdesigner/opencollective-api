@@ -40,7 +40,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.5
         with:
           node-version: '14.x'
 
@@ -88,7 +88,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.5
         with:
           node-version: '14.x'
 
@@ -136,7 +136,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.5
         with:
           node-version: '14.x'
 
@@ -184,7 +184,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.5
         with:
           node-version: '14.x'
 
@@ -232,7 +232,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.5
         with:
           node-version: '14.x'
 
@@ -303,7 +303,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.5
         with:
           node-version: '14.x'
 
@@ -371,7 +371,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v2.1.5
         with:
           node-version: '14.x'
 
