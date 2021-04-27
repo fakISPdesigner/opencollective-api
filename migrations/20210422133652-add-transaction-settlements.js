@@ -44,7 +44,6 @@ module.exports = {
 
     // Create unique index on TransactionGroup + kind
     await queryInterface.addIndex('TransactionSettlements', ['TransactionGroup', 'kind'], {
-      concurrently: true,
       unique: true,
     });
 

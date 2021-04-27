@@ -5,7 +5,11 @@ import config from 'config';
 import { entries, groupBy } from 'lodash';
 import moment from 'moment';
 
-import { getPlatformFeesPathMonthTransactions, settleDebtsLegacy } from '../../server/lib/invoice-platform-fees';
+import {
+  getPendingSettlements,
+  getPlatformFeesPathMonthTransactions,
+  settleDebtsLegacy,
+} from '../../server/lib/host-settlements';
 import models from '../../server/models';
 
 const date = process.env.START_DATE ? moment.utc(process.env.START_DATE) : moment.utc();
@@ -40,6 +44,10 @@ export async function runLegacy() {
       await settleDebtsLegacy(host, currency, hostTransactions, date, chargedHostId);
     }
   }
+}
+
+export async function run() {
+  await getPendingSettlements();
 }
 
 if (require.main === module) {

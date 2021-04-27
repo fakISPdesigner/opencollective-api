@@ -7,8 +7,9 @@ import { v4 as uuid } from 'uuid';
 import { expenseStatus, expenseTypes } from '../constants';
 import { SHARED_REVENUE_PLANS } from '../constants/plans';
 import { SETTLEMENT_EXPENSE_PROPERTIES, TransactionTypes } from '../constants/transactions';
-import models, { sequelize } from '../models';
+import models, { Op, sequelize } from '../models';
 import { PayoutMethodTypes } from '../models/PayoutMethod';
+import { TransactionSettlementStatus } from '../models/TransactionSettlement';
 
 import { uploadToS3 } from './awsS3';
 import { generateKey } from './encryption';
@@ -27,7 +28,11 @@ const ATTACHED_CSV_COLUMNS = [
 
 // ---- New implementation of the platform fees invoice ----
 
-// TODO
+export const getPendingSettlements = async (): Promise<void> => {
+  const transactions = await models.TransactionSettlement.getOwedTransactions();
+
+  console.log(`FOUND ${transactions.length} owed settlements`);
+};
 
 // ---- LEGACY implementation of the platform fees invoice ----
 

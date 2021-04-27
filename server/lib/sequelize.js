@@ -59,6 +59,7 @@ const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.p
   host: dbConfig.host,
   port: dbConfig.port,
   dialect: dbConfig.dialect,
+  logging: console.log, // TODO REMOVE
   ...config.database.options,
 });
 

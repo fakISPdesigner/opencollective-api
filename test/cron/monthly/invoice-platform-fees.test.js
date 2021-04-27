@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import moment from 'moment';
 
-import { runLegacy } from '../../../cron/monthly/invoice-platform-fees';
+import { run, runLegacy } from '../../../cron/monthly/invoice-platform-fees';
 import { TransactionKind } from '../../../server/constants/transaction-kind';
 import { sequelize } from '../../../server/models';
 import {
@@ -20,7 +20,7 @@ describe('cron/monthly/invoice-platform-fees', () => {
 
   let gbpHost, expense;
 
-  before(async () => {
+  const setupFakeData = async () => {
     await utils.resetTestDB();
     const user = await fakeUser({ id: 30 }, { id: 20, slug: 'pia' });
     const oc = await fakeHost({ id: 8686, slug: 'opencollective', CreatedByUserId: user.id });
@@ -112,68 +112,74 @@ describe('cron/monthly/invoice-platform-fees', () => {
       PaymentMethodId: paymentMethod.id,
       createdAt: lastMonth,
     });
-  });
+  };
 
-  describe('Legacy', () => {
-    before(async () => {
-      await runLegacy();
+  ['Legacy', 'New'].forEach(implementation => {
+    describe(`${implementation} implementation`, () => {
+      before(async () => {
+        await setupFakeData();
+        const runFunction = implementation === 'Legacy' ? runLegacy : run;
+        await runFunction();
 
-      expense = (await gbpHost.getExpenses())[0];
-      expense.items = await expense.getItems();
-    });
+        expense = (await gbpHost.getExpenses())[0];
+        expense.items = await expense.getItems();
+      });
 
-    // Resync DB to make sure we're not touching other tests
-    after(async () => {
-      await utils.resetTestDB();
-    });
+      // Resync DB to make sure we're not touching other tests
+      after(async () => {
+        await utils.resetTestDB();
+      });
 
-    it('should credit the host with the total amount collected in platform fees', async () => {
-      const [collectedTransaction] = await gbpHost.getTransactions({});
-      expect(collectedTransaction).to.have.property('description').that.includes('Platform Fees and Tips collected in');
-      expect(collectedTransaction).to.have.property('amount', Math.round(1000 / 1.23) + 300);
-      expect(collectedTransaction).to.have.property('kind', null);
-    });
+      it('should credit the host with the total amount collected in platform fees', async () => {
+        const [collectedTransaction] = await gbpHost.getTransactions({});
+        expect(collectedTransaction)
+          .to.have.property('description')
+          .that.includes('Platform Fees and Tips collected in');
+        expect(collectedTransaction).to.have.property('amount', Math.round(1000 / 1.23) + 300);
+        expect(collectedTransaction).to.have.property('kind', null);
+      });
 
-    it('should invoice the host in its own currency', () => {
-      expect(expense).to.have.property('currency', 'GBP');
-      expect(expense).to.have.property('description').that.includes('Platform settlement for');
-      expect(expense).to.have.nested.property('data.isPlatformTipSettlement', true);
-    });
+      it('should invoice the host in its own currency', () => {
+        expect(expense).to.have.property('currency', 'GBP');
+        expect(expense).to.have.property('description').that.includes('Platform settlement for');
+        expect(expense).to.have.nested.property('data.isPlatformTipSettlement', true);
+      });
 
-    it('should use a payout method compatible with the host currency', () => {
-      expect(expense).to.have.property('PayoutMethodId', 2956);
-    });
+      it('should use a payout method compatible with the host currency', () => {
+        expect(expense).to.have.property('PayoutMethodId', 2956);
+      });
 
-    it('should invoice platform fees not collected through Stripe', async () => {
-      const platformFeesItem = expense.items.find(p => p.description == 'Platform Fees');
-      expect(platformFeesItem).to.have.property('amount', 300);
-    });
+      it('should invoice platform fees not collected through Stripe', async () => {
+        const platformFeesItem = expense.items.find(p => p.description == 'Platform Fees');
+        expect(platformFeesItem).to.have.property('amount', 300);
+      });
 
-    it('should invoice platform tips not collected through Stripe', async () => {
-      const platformTipsItem = expense.items.find(p => p.description == 'Platform Tips');
-      expect(platformTipsItem).to.have.property('amount', Math.round(1000 / 1.23));
-    });
+      it('should invoice platform tips not collected through Stripe', async () => {
+        const platformTipsItem = expense.items.find(p => p.description == 'Platform Tips');
+        expect(platformTipsItem).to.have.property('amount', Math.round(1000 / 1.23));
+      });
 
-    it('should invoice pending shared host revenue and ignore settled transactions and transactions with platform fee', async () => {
-      const sharedRevenueItem = expense.items.find(p => p.description == 'Shared Revenue');
-      expect(sharedRevenueItem).to.have.property('amount', Math.round(200 * 0.15));
-    });
+      it('should invoice pending shared host revenue and ignore settled transactions and transactions with platform fee', async () => {
+        const sharedRevenueItem = expense.items.find(p => p.description == 'Shared Revenue');
+        expect(sharedRevenueItem).to.have.property('amount', Math.round(200 * 0.15));
+      });
 
-    it('should attach detailed list of transactions in the expense', async () => {
-      const [attachment] = await expense.getAttachedFiles();
-      expect(attachment).to.have.property('url').that.includes('.csv');
-    });
+      it('should attach detailed list of transactions in the expense', async () => {
+        const [attachment] = await expense.getAttachedFiles();
+        expect(attachment).to.have.property('url').that.includes('.csv');
+      });
 
-    it('should deduct owed payment processor fees relatetd to platform tips collected using stripe', async () => {
-      const reimburseItem = expense.items.find(
-        p => p.description == 'Reimburse: Payment Processor Fee for collected Platform Tips',
-      );
-      expect(reimburseItem).to.have.property('amount', Math.round(-100 / 1.23));
-    });
+      it('should deduct owed payment processor fees relatetd to platform tips collected using stripe', async () => {
+        const reimburseItem = expense.items.find(
+          p => p.description == 'Reimburse: Payment Processor Fee for collected Platform Tips',
+        );
+        expect(reimburseItem).to.have.property('amount', Math.round(-100 / 1.23));
+      });
 
-    it('should consider fixed fee per host collective', async () => {
-      const reimburseItem = expense.items.find(p => p.description == 'Fixed Fee per Hosted Collective');
-      expect(reimburseItem).to.have.property('amount', 100);
+      it('should consider fixed fee per host collective', async () => {
+        const reimburseItem = expense.items.find(p => p.description == 'Fixed Fee per Hosted Collective');
+        expect(reimburseItem).to.have.property('amount', 100);
+      });
     });
   });
 });
